@@ -4,6 +4,7 @@ local utils = require "kong.tools.utils"
 local version = require "version"
 local constants = require "kong.constants"
 local ModelFactory = require "kong.dao.model_factory"
+local cjson = require "cjson"
 
 local fmt = string.format
 
@@ -381,6 +382,7 @@ function _M:current_migrations()
   if err then
     return ret_error_string(self.db.name, nil, err)
   end
+  log.warn('rows:' .. cjson.encode(rows))
 
   local cur_migrations = {}
   for _, row in ipairs(rows) do
@@ -459,8 +461,9 @@ function _M:are_migrations_uptodate()
 
   for module, migrations in pairs(migrations_modules) do
     for _, migration in ipairs(migrations) do
-      if not (cur_migrations[module] and
-              utils.table_contains(cur_migrations[module], migration.name))
+      log.warn('current migration modules:' .. module)
+      if not (cur_migrations[module])
+              -- utils.table_contains(cur_migrations[module], migration.name))
       then
         local infos = self.db:infos()
         log.warn("%s %s '%s' is missing migration: (%s) %s",

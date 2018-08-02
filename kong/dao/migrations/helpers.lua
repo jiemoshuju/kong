@@ -83,7 +83,17 @@ function _M.plugin_config_iterator(dao, plugin_name)
       end
 
       assert(run_rows(rows))
-    end)
+
+  elseif dao.db_type == "mysql" then
+    coro = coroutine.create(function()
+      local rows, err = dao.db:query([[
+        SELECT * FROM plugins WHERE name = ']] .. plugin_name .. [[';
+      ]])
+      if err then
+        return nil, nil, err
+      end
+
+      assert(run_rows(rows))
 
   else
     coro = coroutine.create(function()

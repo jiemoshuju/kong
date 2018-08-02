@@ -1,5 +1,7 @@
-local pgmoon       = require "pgmoon"
+local fmt = string.format
 
+
+local mysql = require "kong.tools.mysql"
 
 local setmetatable = setmetatable
 local concat       = table.concat
@@ -18,71 +20,6 @@ SELECT table_name
  WHERE table_schema = 'public';
 ]]
 
-
---local function visit(k, n, m, s)
---  if m[k] == 0 then return 1 end
---  if m[k] == 1 then return end
---  m[k] = 0
---  local f = n[k]
---  for i=1, #f do
---    if visit(f[i], n, m, s) then return 1 end
---  end
---  m[k] = 1
---  s[#s+1] = k
---end
---
---
---local tsort = {}
---tsort.__index = tsort
---
---
---function tsort.new()
---  return setmetatable({ n = {} }, tsort)
---end
---
---
---function tsort:add(...)
---  local p = { ... }
---  local c = #p
---  if c == 0 then return self end
---  if c == 1 then
---    p = p[1]
---    if type(p) == "table" then
---      c = #p
---    else
---      p = { p }
---    end
---  end
---  local n = self.n
---  for i=1, c do
---    local f = p[i]
---    if n[f] == nil then n[f] = {} end
---  end
---  for i=2, c, 1 do
---    local f = p[i]
---    local t = p[i-1]
---    local o = n[f]
---    o[#o+1] = t
---  end
---  return self
---end
---
---
---function tsort:sort()
---  local n  = self.n
---  local s = {}
---  local m  = {}
---  for k in pairs(n) do
---    if m[k] == nil then
---      if visit(k, n, m, s) then
---        return nil, "There is a circular dependency in the graph. It is not possible to derive a topological sort."
---      end
---    end
---  end
---  return s
---end
-
-
 local function iterator(rows)
   local i = 0
   return function()
@@ -90,7 +27,6 @@ local function iterator(rows)
     return rows[i]
   end
 end
-
 
 local setkeepalive
 
@@ -107,27 +43,20 @@ local function connect(config)
     config.socket_type = "nginx"
   end
 
-  local connection = pgmoon.new(config)
+  local connection = mysql.new()
 
   connection.convert_null = true
   connection.NULL         = null
 
-  local ok, err = connection:connect()
+  local ok, err = connection:connect(config)
   if not ok then
     return nil, err
   end
 
-  if connection.sock:getreusedtimes() == 0 then
-    ok, err = connection:query("SET TIME ZONE 'UTC';");
-    if not ok then
-      setkeepalive(connection)
-      return nil, err
-    end
-  end
+  connection:set_timeout(3000)
 
   return connection
 end
-
 
 setkeepalive = function(connection)
   if not connection or not connection.sock then
@@ -136,26 +65,26 @@ setkeepalive = function(connection)
 
   local ok, err
   if connection.sock_type == "luasocket" then
-    ok, err = connection:disconnect()
+    ok, err = connection:close()
     if not ok then
       if err then
-        log(WARN, "unable to close postgres connection (", err, ")")
+        log(WARN, "unable to close mysql connection (", err, ")")
 
       else
-        log(WARN, "unable to close postgres connection")
+        log(WARN, "unable to close mysql connection")
       end
 
       return nil, err
     end
 
   else
-    ok, err = connection:keepalive()
+    ok, err = connection:set_keepalive(1000,10)
     if not ok then
       if err then
-        log(WARN, "unable to set keepalive for postgres connection (", err, ")")
+        log(WARN, "unable to set keepalive for mysql connection (", err, ")")
 
       else
-        log(WARN, "unable to set keepalive for postgres connection")
+        log(WARN, "unable to set keepalive for mysql connection")
       end
 
       return nil, err
@@ -164,7 +93,6 @@ setkeepalive = function(connection)
 
   return true
 end
-
 
 local _mt = {}
 
@@ -211,16 +139,16 @@ function _mt:query(sql)
     return nil, err
   end
 
-  local res, exc, partial, num_queries = connection:query(sql)
+  local res, err = connection:query(sql)
 
   setkeepalive(connection)
 
-  return res, exc, partial, num_queries
+  return res, err
 end
 
 
 function _mt:iterate(sql)
-  local res, err, partial, num_queries = self:query(sql)
+  local res, err = self:query(sql)
   if not res then
     return nil, err, partial, num_queries
   end
@@ -255,19 +183,24 @@ function _mt:reset()
   -- tables.
   local graph = tsort.new()
   local hash  = {}
+
   for _, strategy in pairs(strategies) do
     local schema = strategy.schema
     local name   = schema.name
     local fields = schema.fields
+
     hash[name]   = strategy
     graph:add(name)
+
     for _, field in ipairs(fields) do
       if field.type == "foreign" then
         graph:add(field.schema.name, name)
       end
     end
   end
+
   local sorted_strategies = graph:sort()
+
   for _, name in ipairs(sorted_strategies) do
     ok, err = hash[name]:create()
     if not ok then
@@ -310,20 +243,17 @@ end
 
 local _M = {}
 
-
 function _M.new(kong_config)
   local config = {
-    host       = kong_config.pg_host,
-    port       = kong_config.pg_port,
-    user       = kong_config.pg_user,
-    password   = kong_config.pg_password,
-    database   = kong_config.pg_database,
-    ssl        = kong_config.pg_ssl,
-    ssl_verify = kong_config.pg_ssl_verify,
-    cafile     = kong_config.lua_ssl_trusted_certificate,
+    host = kong_config.mysql_host,
+    port = kong_config.mysql_port,
+    user = kong_config.mysql_user,
+    password = kong_config.mysql_password,
+    database = kong_config.mysql_database,
+    max_packet_size=1024*1024
   }
 
-  local db = pgmoon.new(config)
+  local db = mysql.new()
 
   return setmetatable({
     config            = config,

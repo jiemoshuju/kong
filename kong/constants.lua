@@ -102,6 +102,10 @@ return {
     CASSANDRA = {
       MIN = "2.2",
       -- also accepts a DEPRECATED key
+    },
+    MYSQL = {
+      MIN = "5.5",
+      -- also accepts a DEPRECATED key
     }
   }
 }

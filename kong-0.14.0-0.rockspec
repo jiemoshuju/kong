@@ -59,6 +59,7 @@ build = {
     ["kong.cluster_events"] = "kong/cluster_events.lua",
     ["kong.cluster_events.strategies.cassandra"] = "kong/cluster_events/strategies/cassandra.lua",
     ["kong.cluster_events.strategies.postgres"] = "kong/cluster_events/strategies/postgres.lua",
+    ["kong.cluster_events.strategies.mysql"] = "kong/cluster_events/strategies/mysql.lua",
 
     ["kong.templates.nginx"] = "kong/templates/nginx.lua",
     ["kong.templates.nginx_kong"] = "kong/templates/nginx_kong.lua",
@@ -124,12 +125,14 @@ build = {
     ["kong.dao.db"] = "kong/dao/db/init.lua",
     ["kong.dao.db.cassandra"] = "kong/dao/db/cassandra.lua",
     ["kong.dao.db.postgres"] = "kong/dao/db/postgres.lua",
+    ["kong.dao.db.mysql"] = "kong/dao/db/mysql.lua",
     ["kong.dao.dao"] = "kong/dao/dao.lua",
     ["kong.dao.factory"] = "kong/dao/factory.lua",
     ["kong.dao.model_factory"] = "kong/dao/model_factory.lua",
     ["kong.dao.migrations.helpers"] = "kong/dao/migrations/helpers.lua",
     ["kong.dao.migrations.cassandra"] = "kong/dao/migrations/cassandra.lua",
     ["kong.dao.migrations.postgres"] = "kong/dao/migrations/postgres.lua",
+    ["kong.dao.migrations.mysql"] = "kong/dao/migrations/mysql.lua",
 
     ["kong.db"] = "kong/db/init.lua",
     ["kong.db.errors"] = "kong/db/errors.lua",
@@ -154,6 +157,8 @@ build = {
     ["kong.db.strategies.cassandra.services"] = "kong/db/strategies/cassandra/services.lua",
     ["kong.db.strategies.postgres"] = "kong/db/strategies/postgres/init.lua",
     ["kong.db.strategies.postgres.connector"] = "kong/db/strategies/postgres/connector.lua",
+    ["kong.db.strategies.mysql"] = "kong/db/strategies/mysql/init.lua",
+    ["kong.db.strategies.mysql.connector"] = "kong/db/strategies/mysql/connector.lua",
 
     ["kong.pdk"] = "kong/pdk/init.lua",
     ["kong.pdk.private.checks"] = "kong/pdk/private/checks.lua",

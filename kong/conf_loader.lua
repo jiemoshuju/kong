@@ -89,7 +89,10 @@ local CONF_INFERENCES = {
   error_default_type = {enum = {"application/json", "application/xml",
                                 "text/html", "text/plain"}},
 
-  database = {enum = {"postgres", "cassandra"}},
+  database = {enum = {"mysql","postgres", "cassandra"}},
+
+  mysql_port = {typ = "number"},
+
   pg_port = {typ = "number"},
   pg_password = {typ = "string"},
   pg_ssl = {typ = "boolean"},
@@ -139,6 +142,7 @@ local CONF_INFERENCES = {
 -- List of settings whose values must not be printed when
 -- using the CLI in debug mode (which prints all settings).
 local CONF_SENSITIVE = {
+  mysql_password = true,
   pg_password = true,
   cassandra_password = true,
 }

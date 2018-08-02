@@ -89,6 +89,9 @@ function _M.new(opts)
     elseif dao_factory.db_type == "postgres" then
       db_strategy = require "kong.cluster_events.strategies.postgres"
 
+    elseif dao_factory.db_type == "mysql" then
+      db_strategy = require "kong.cluster_events.strategies.mysql"
+
     else
       return error("no cluster_events strategy for " ..
                    dao_factory.db_type)

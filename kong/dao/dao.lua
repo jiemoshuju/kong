@@ -76,7 +76,7 @@ DAO.ret_error = ret_error
 --- Instantiate a DAO.
 -- The DAO Factory is responsible for instantiating DAOs for each entity.
 -- This method is only documented for clarity.
--- @param db An instance of the underlying database object (`cassandra_db` or `postgres_db`)
+-- @param db An instance of the underlying database object (`cassandra_db` or `postgres_db` or `mysql_db`)
 -- @param model_mt The related model metatable. Such metatables contain, among other things, validation methods.
 -- @param schema The schema of the entity for which this DAO is instantiated. The schema contains crucial information about how to interact with the database (fields type, table name, etc...)
 -- @param constraints A table of constraints built by the DAO Factory. Such constraints are mostly useful for databases without support for foreign keys. SQL databases handle those contraints natively.
