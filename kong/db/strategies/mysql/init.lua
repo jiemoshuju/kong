@@ -210,78 +210,96 @@ local function collapse(name, map)
   return load(concat(c), "=" .. name, "t", env)
 end
 
-
-local function escape_identifier(connector, identifier, field)
-  identifier = connector:escape_identifier(identifier)
-
-  if field then
-    if field.timestamp then
-      return concat { "EXTRACT(EPOCH FROM ", identifier, " AT TIME ZONE 'UTC') AS ", identifier }
-    end
-  end
-
-  return identifier
+local function escape_identifier(connector,ident)
+  return '`' .. (tostring(ident):gsub('"', '""')) .. '`'
 end
 
-
-local function escape_literal(connector, literal, field)
-  if literal == nil or literal == null then
-    return "NULL"
+-- @see pgmoon
+local function escape_literal(connector,val, field)
+  local t_val = type(val)
+  if t_val == "number" then
+    return tostring(val)
+  elseif t_val == "string" then
+    return "'" .. tostring((val:gsub("'", "''"))) .. "'"
+  elseif t_val == "boolean" then
+    return val and "TRUE" or "FALSE"
+  elseif t_val == "table" and field and (field.type == "table" or field.type == "array") then
+    return escape_literal(cjson.encode(val))
   end
-
-  if field then
-    if field.timestamp then
-      return concat { "TO_TIMESTAMP(", connector:escape_literal(literal), ") AT TIME ZONE 'UTC'" }
-    end
-
-    -- TODO: what about UUID, should it be in some defined format?
-
-    if field.type == "array" or field.type == "set" then
-
-      if not literal[1] then
-        return connector:escape_literal("{}")
-      end
-
-      local elements = field.elements
-
-      if elements.timestamp then
-        local timestamps = {}
-        for i, v in ipairs(literal) do
-          timestamps[i] = concat { "TO_TIMESTAMP(", connector:escape_literal(v), ") AT TIME ZONE 'UTC'" }
-        end
-        return encode_array(timestamps)
-      end
-
-      local et = elements.type
-
-      if et == "array" or et == "set" then
-        local el = elements
-        repeat
-          el = el.elements
-          et = el.type
-        until et ~= "array" and et ~= "set"
-
-        if et == "map" or et == "record" then
-          return error("postgres strategy to escape multidimensional arrays of maps or records is not implemented")
-        end
-
-      elseif et == "map" or et == "record" then
-        local jsons = {}
-        for i, v in ipairs(literal) do
-          jsons[i] = cjson.encode(v)
-        end
-        return encode_array(jsons)
-      end
-
-      return encode_array(literal)
-
-    elseif field.type == "map" or field.type == "record" then
-      return encode_json(literal)
-    end
-  end
-
-  return connector:escape_literal(literal)
+  error("don't know how to escape value: " .. tostring(val))
 end
+
+-- local function escape_identifier(connector, identifier, field)
+--   identifier = connector:escape_identifier(identifier)
+
+--   if field then
+--     if field.timestamp then
+--       return concat { "EXTRACT(EPOCH FROM ", identifier, " AT TIME ZONE 'UTC') AS ", identifier }
+--     end
+--   end
+
+--   return identifier
+-- end
+
+
+-- local function escape_literal(connector, literal, field)
+--   if literal == nil or literal == null then
+--     return "NULL"
+--   end
+
+--   if field then
+--     if field.timestamp then
+--       return concat { "TO_TIMESTAMP(", connector:escape_literal(literal), ") AT TIME ZONE 'UTC'" }
+--     end
+
+--     -- TODO: what about UUID, should it be in some defined format?
+
+--     if field.type == "array" or field.type == "set" then
+
+--       if not literal[1] then
+--         return connector:escape_literal("{}")
+--       end
+
+--       local elements = field.elements
+
+--       if elements.timestamp then
+--         local timestamps = {}
+--         for i, v in ipairs(literal) do
+--           timestamps[i] = concat { "TO_TIMESTAMP(", connector:escape_literal(v), ") AT TIME ZONE 'UTC'" }
+--         end
+--         return encode_array(timestamps)
+--       end
+
+--       local et = elements.type
+
+--       if et == "array" or et == "set" then
+--         local el = elements
+--         repeat
+--           el = el.elements
+--           et = el.type
+--         until et ~= "array" and et ~= "set"
+
+--         if et == "map" or et == "record" then
+--           return error("postgres strategy to escape multidimensional arrays of maps or records is not implemented")
+--         end
+
+--       elseif et == "map" or et == "record" then
+--         local jsons = {}
+--         for i, v in ipairs(literal) do
+--           jsons[i] = cjson.encode(v)
+--         end
+--         return encode_array(jsons)
+--       end
+
+--       return encode_array(literal)
+
+--     elseif field.type == "map" or field.type == "record" then
+--       return encode_json(literal)
+--     end
+--   end
+
+--   return connector:escape_literal(literal)
+-- end
 
 
 local function field_type_to_postgres_type(field)

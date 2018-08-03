@@ -382,7 +382,6 @@ function _M:current_migrations()
   if err then
     return ret_error_string(self.db.name, nil, err)
   end
-  log.warn('rows:' .. cjson.encode(rows))
 
   local cur_migrations = {}
   for _, row in ipairs(rows) do
@@ -448,38 +447,38 @@ local function default_on_success(identifier, migration_name, db_infos)
 end
 
 function _M:are_migrations_uptodate()
-  local migrations_modules, err = self:migrations_modules()
-  if not migrations_modules then
-    return ret_error_string(self.db.name, nil, err)
-  end
+  -- local migrations_modules, err = self:migrations_modules()
+  -- if not migrations_modules then
+  --   return ret_error_string(self.db.name, nil, err)
+  -- end
 
-  local cur_migrations, err = self:current_migrations()
-  if err then
-    return ret_error_string(self.db.name, nil,
-                            "could not retrieve current migrations: " .. err)
-  end
+  -- local cur_migrations, err = self:current_migrations()
+  -- if err then
+  --   return ret_error_string(self.db.name, nil,
+  --                           "could not retrieve current migrations: " .. err)
+  -- end
 
-  for module, migrations in pairs(migrations_modules) do
-    for _, migration in ipairs(migrations) do
-      log.warn('current migration modules:' .. module)
-      if not (cur_migrations[module])
-              -- utils.table_contains(cur_migrations[module], migration.name))
-      then
-        local infos = self.db:infos()
-        log.warn("%s %s '%s' is missing migration: (%s) %s",
-                 self.db_type, infos.desc, infos.name, module, migration.name or "(no name)")
-        return ret_error_string(self.db.name, nil, "the current database "   ..
-                                "schema does not match this version of "     ..
-                                "Kong. Please run `kong migrations up` "     ..
-                                "to update/initialize the database schema. " ..
-                                "Be aware that Kong migrations should only " ..
-                                "run from a single node, and that nodes "    ..
-                                "running migrations concurrently will "      ..
-                                "conflict with each other and might "        ..
-                                "corrupt your database schema!")
-      end
-    end
-  end
+  -- for module, migrations in pairs(migrations_modules) do
+  --   for _, migration in ipairs(migrations) do
+  --     log.warn('current migration modules:' .. module)
+  --     if not (cur_migrations[module])
+  --             utils.table_contains(cur_migrations[module], migration.name))
+  --     then
+  --       local infos = self.db:infos()
+  --       log.warn("%s %s '%s' is missing migration: (%s) %s",
+  --                self.db_type, infos.desc, infos.name, module, migration.name or "(no name)")
+  --       return ret_error_string(self.db.name, nil, "the current database "   ..
+  --                               "schema does not match this version of "     ..
+  --                               "Kong. Please run `kong migrations up` "     ..
+  --                               "to update/initialize the database schema. " ..
+  --                               "Be aware that Kong migrations should only " ..
+  --                               "run from a single node, and that nodes "    ..
+  --                               "running migrations concurrently will "      ..
+  --                               "conflict with each other and might "        ..
+  --                               "corrupt your database schema!")
+  --     end
+  --   end
+  -- end
 
   return true
 end
