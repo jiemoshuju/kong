@@ -528,7 +528,7 @@ local function execute(strategy, statement_name, attributes, is_update)
   end
 
   local sql = statement.make(argv)
-  ngx.log(ngx.ERR,sql .. ' err')
+
   return connector:query(sql)
 end
 

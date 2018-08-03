@@ -61,7 +61,7 @@ function _M:insert(node_id, channel, at, data, nbf)
 
   local q = fmt(INSERT_QUERY, pg_id, pg_node_id, at, nbf, expire_at,
                 pg_channel, pg_data)
-  ngx.log(ngx.ERR,'error query' .. q)
+
   local res, err = self.db:query(q)
   if not res then
     return nil, "could not insert invalidation row: " .. err
