@@ -944,8 +944,12 @@ local escape_literal = function(self, val)
     return "'" .. tostring((val:gsub("'", "''"))) .. "'"
   elseif "boolean" == _exp_0 then
     return val and "TRUE" or "FALSE"
+  elseif "nil" == _exp_0 then
+    return "''"
+  elseif ngx.null == val then
+    return "''"
   end
-  return error("don't know how to escape value: " .. tostring(val))
+  return error("don't know how to escape value: " .. tostring(val) .. " type:" .. _exp_0)
 end
 _M.escape_literal = escape_literal
 

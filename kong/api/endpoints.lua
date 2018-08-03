@@ -3,6 +3,7 @@ local responses    = require "kong.tools.responses"
 local utils        = require "kong.tools.utils"
 local arguments    = require "kong.api.arguments"
 local app_helpers  = require "lapis.application"
+local cjson = require "cjson"
 
 
 local escape_uri   = ngx.escape_uri
@@ -165,7 +166,7 @@ local function post_collection_endpoint(schema, foreign_schema, foreign_field_na
 
     local entity, _, err_t = db[schema.name]:insert(self.args.post)
     if err_t then
-      return handle_error(err_t)
+      return handle_error(err_t .. tostring(cjson.encode(self.args.post)) .. ' shema.name=' .. schema.name)
     end
 
     return helpers.responses.send_HTTP_CREATED(entity)

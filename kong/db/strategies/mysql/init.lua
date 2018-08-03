@@ -210,96 +210,103 @@ local function collapse(name, map)
   return load(concat(c), "=" .. name, "t", env)
 end
 
-local function escape_identifier(connector,ident)
-  return '`' .. (tostring(ident):gsub('"', '""')) .. '`'
+-- local function escape_identifier(connector,ident)
+--   return '`' .. (tostring(ident):gsub('"', '""')) .. '`'
+-- end
+
+-- -- @see pgmoon
+-- local function escape_literal(connector,val, field)
+--   ngx.log(ngx.ERR,cjson.encode(field))
+--   if field.timestamp then
+--     return 
+--   end
+--   local t_val = type(val)
+--   if t_val == "number" then
+--     return tostring(val)
+--   elseif t_val == "string" then
+--     return "'" .. tostring((val:gsub("'", "''"))) .. "'"
+--   elseif t_val == "boolean" then
+--     return val and "TRUE" or "FALSE"
+--   elseif t_val == "table" and field and (field.type == "table" or field.type == "array") then
+--     return escape_literal(cjson.encode(val))
+--   elseif "nil" == _exp_0 then
+--     return "''"
+--   elseif ngx.null == val then
+--     return "''"
+--   end
+--   error("don't know how to escape value: " .. tostring(val) .. " type:" .. t_val)
+-- end
+
+local function escape_identifier(connector, identifier, field)
+  -- if field then
+  --   if field.timestamp then
+  --     return concat { "UNIX_TIMESTAMP(", identifier, ") AS ", identifier }
+  --   end
+  -- end
+
+  -- return identifier
+  return '`' .. (tostring(identifier):gsub('"', '""')) .. '`'
 end
 
--- @see pgmoon
-local function escape_literal(connector,val, field)
-  local t_val = type(val)
-  if t_val == "number" then
-    return tostring(val)
-  elseif t_val == "string" then
-    return "'" .. tostring((val:gsub("'", "''"))) .. "'"
-  elseif t_val == "boolean" then
-    return val and "TRUE" or "FALSE"
-  elseif t_val == "table" and field and (field.type == "table" or field.type == "array") then
-    return escape_literal(cjson.encode(val))
+
+local function escape_literal(connector, literal, field)
+  if literal == nil or literal == null or literal == ngx.null then
+    return "''"
   end
-  error("don't know how to escape value: " .. tostring(val))
+
+  if field then
+    if field.timestamp then
+      return concat { "FROM_UNIXTIME(", connector:escape_literal(literal), ")"}
+    end
+
+    -- TODO: what about UUID, should it be in some defined format?
+
+    if field.type == "array" or field.type == "set" then
+
+      if not literal[1] then
+        return connector:escape_literal("{}")
+      end
+
+      local elements = field.elements
+
+      if elements.timestamp then
+        local timestamps = {}
+        for i, v in ipairs(literal) do
+          timestamps[i] = concat { "FROM_UNIXTIME(", connector:escape_literal(v), ")"}
+        end
+        return encode_array(timestamps)
+      end
+
+      local et = elements.type
+
+      if et == "array" or et == "set" then
+        local el = elements
+        repeat
+          el = el.elements
+          et = el.type
+        until et ~= "array" and et ~= "set"
+
+        if et == "map" or et == "record" then
+          return error("mysql strategy to escape multidimensional arrays of maps or records is not implemented")
+        end
+
+      elseif et == "map" or et == "record" then
+        local jsons = {}
+        for i, v in ipairs(literal) do
+          jsons[i] = cjson.encode(v)
+        end
+        return encode_array(jsons)
+      end
+
+      return encode_array(literal)
+
+    elseif field.type == "map" or field.type == "record" then
+      return encode_json(literal)
+    end
+  end
+
+  return connector:escape_literal(literal)
 end
-
--- local function escape_identifier(connector, identifier, field)
---   identifier = connector:escape_identifier(identifier)
-
---   if field then
---     if field.timestamp then
---       return concat { "EXTRACT(EPOCH FROM ", identifier, " AT TIME ZONE 'UTC') AS ", identifier }
---     end
---   end
-
---   return identifier
--- end
-
-
--- local function escape_literal(connector, literal, field)
---   if literal == nil or literal == null then
---     return "NULL"
---   end
-
---   if field then
---     if field.timestamp then
---       return concat { "TO_TIMESTAMP(", connector:escape_literal(literal), ") AT TIME ZONE 'UTC'" }
---     end
-
---     -- TODO: what about UUID, should it be in some defined format?
-
---     if field.type == "array" or field.type == "set" then
-
---       if not literal[1] then
---         return connector:escape_literal("{}")
---       end
-
---       local elements = field.elements
-
---       if elements.timestamp then
---         local timestamps = {}
---         for i, v in ipairs(literal) do
---           timestamps[i] = concat { "TO_TIMESTAMP(", connector:escape_literal(v), ") AT TIME ZONE 'UTC'" }
---         end
---         return encode_array(timestamps)
---       end
-
---       local et = elements.type
-
---       if et == "array" or et == "set" then
---         local el = elements
---         repeat
---           el = el.elements
---           et = el.type
---         until et ~= "array" and et ~= "set"
-
---         if et == "map" or et == "record" then
---           return error("postgres strategy to escape multidimensional arrays of maps or records is not implemented")
---         end
-
---       elseif et == "map" or et == "record" then
---         local jsons = {}
---         for i, v in ipairs(literal) do
---           jsons[i] = cjson.encode(v)
---         end
---         return encode_array(jsons)
---       end
-
---       return encode_array(literal)
-
---     elseif field.type == "map" or field.type == "record" then
---       return encode_json(literal)
---     end
---   end
-
---   return connector:escape_literal(literal)
--- end
 
 
 local function field_type_to_postgres_type(field)
@@ -307,19 +314,19 @@ local function field_type_to_postgres_type(field)
     return "TIMESTAMP WITH TIME ZONE"
 
   elseif field.uuid then
-    return "UUID"
+    return "varchar(50)"
   end
 
   local t = field.type
 
   if t == "string" then
-    return "TEXT"
+    return "varchar(512)"
 
   elseif t == "boolean" then
-    return "BOOLEAN"
+    return "boolean"
 
   elseif t == "integer" then
-    return "BIGINT"
+    return "bigint(20)"
 
   elseif t == "number" then
     return "DOUBLE PRECISION"
@@ -521,7 +528,7 @@ local function execute(strategy, statement_name, attributes, is_update)
   end
 
   local sql = statement.make(argv)
-
+  ngx.log(ngx.ERR,sql .. ' err')
   return connector:query(sql)
 end
 
@@ -1234,16 +1241,14 @@ function _M.new(connector, schema, errors)
 
   local insert_statement = concat {
     "INSERT INTO ",  table_name_escaped, " (", insert_columns, ")\n",
-    "     VALUES (", insert_expressions, ")\n",
-    "  RETURNING ",  select_expressions, ";",
+    "     VALUES (", insert_expressions, ");",
   }
 
   local upsert_statement = concat {
     "INSERT INTO ",  table_name_escaped, " (", insert_columns, ")\n",
     "     VALUES (", insert_expressions, ")\n",
     "ON CONFLICT (", pk_escaped, ") DO UPDATE\n",
-    "        SET ",  concat(upsert_expressions, ", "), "\n",
-    "  RETURNING ",  select_expressions, ";",
+    "        SET ",  concat(upsert_expressions, ", "), ";",
   }
 
   local select_statement = concat {
@@ -1271,8 +1276,7 @@ function _M.new(connector, schema, errors)
   local update_statement = concat {
     "   UPDATE ",  table_name_escaped, "\n",
     "      SET ",  concat(update_expressions, ", "), "\n",
-    "    WHERE (", pk_escaped, ") = (", update_placeholders, ")\n",
-    "RETURNING ",  select_expressions , ";"
+    "    WHERE (", pk_escaped, ") = (", update_placeholders, ");",
   }
 
   local delete_statement = concat {
@@ -1483,8 +1487,7 @@ function _M.new(connector, schema, errors)
       local update_by_statement = concat {
         "   UPDATE ", table_name_escaped, "\n",
         "      SET ", concat(update_expressions, ", "), "\n",
-        "    WHERE ", unique_escaped, " = $", update_by_args_count, "\n",
-        "RETURNING ", select_expressions , ";"
+        "    WHERE ", unique_escaped, " = $", update_by_args_count, ";",
       }
 
       local update_by_args_names = {}
@@ -1507,8 +1510,7 @@ function _M.new(connector, schema, errors)
         "INSERT INTO ",  table_name_escaped, " (", insert_columns, ")\n",
         "     VALUES (", insert_expressions, ")\n",
         "ON CONFLICT (", unique_escaped, ") DO UPDATE\n",
-        "        SET ",  concat(upsert_expressions, ", "), "\n",
-        "  RETURNING ",  select_expressions, ";",
+        "        SET ",  concat(upsert_expressions, ", "), ";",
       }
 
       statements[upsert_by_statement_name] = {
