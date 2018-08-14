@@ -594,4 +594,24 @@ function _M:record_migration(id, name)
   return true
 end
 
+
+function _M:reachable()
+  local conn_opts = self:clone_query_options()
+  local my,err
+  
+    my, err = mysql:new()
+    if not my then
+          return nil,Errors.db(err)
+    end
+  my:set_timeout(3000) -- 3 sec
+  local ok, err = my:connect(conn_opts)
+  if not ok then
+      return nil,Errors.db(err)
+  end
+
+  my:set_keepalive(10000, 10)
+
+  return true
+end
+
 return _M

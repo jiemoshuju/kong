@@ -18,17 +18,15 @@ end
 
 local INSERT_QUERY = [[
 INSERT INTO cluster_events(id, node_id, at, nbf, expire_at, channel, data)
- VALUES(%s, %s, to_timestamp(%f), to_timestamp(%s), to_timestamp(%s), %s, %s)
+ VALUES(%s, %s, FROM_UNIXTIME(%f), FROM_UNIXTIME(%s), FROM_UNIXTIME(%s), %s, %s)
 ]]
 
 local SELECT_INTERVAL_QUERY = [[
-SELECT id, node_id, channel, data,
-       extract(epoch from at) as at,
-       extract(epoch from nbf) as nbf
+SELECT id, node_id, channel, data,at,nbf
 FROM cluster_events
 WHERE channel IN (%s)
-  AND at >  to_timestamp(%f)
-  AND at <= to_timestamp(%f)
+  AND at >  FROM_UNIXTIME(%f)
+  AND at <= FROM_UNIXTIME(%f)
 ]]
 
 
@@ -54,10 +52,10 @@ function _M:insert(node_id, channel, at, data, nbf)
     nbf = "NULL"
   end
 
-  local pg_id      = mysql.escape_literal(utils.uuid())
-  local pg_node_id = mysql.escape_literal(node_id)
-  local pg_channel = mysql.escape_literal(channel)
-  local pg_data    = mysql.escape_literal(data)
+  local pg_id      = ngx.quote_sql_str(utils.uuid())
+  local pg_node_id = ngx.quote_sql_str(node_id)
+  local pg_channel = ngx.quote_sql_str(channel)
+  local pg_data    = ngx.quote_sql_str(data)
 
   local q = fmt(INSERT_QUERY, pg_id, pg_node_id, at, nbf, expire_at,
                 pg_channel, pg_data)
