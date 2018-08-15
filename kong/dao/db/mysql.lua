@@ -337,14 +337,15 @@ end
 local function deserialize_timestamps(self, row, schema)
   local result = row
  if result ~=nil then
-       
       for k, v in pairs(schema.fields) do
         if v.type == "timestamp" and result[k] then
         --  log(ERR,result[k])
         --  log(ERR,k)
           local query = fmt("SELECT   UNIX_TIMESTAMP('%s')*1000 as `%s`;", result[k], k)
           local res, err = self:query(query)
-          if not res then return nil, err
+          if not res then
+            ngx.log(ngx.ERR, "sql:" .. query .. " err:" .. tostring(err))
+            return nil, err
           elseif #res > 0 then
             result[k] = res[1][k]
           end
@@ -498,13 +499,17 @@ function _M:update(table_name, schema, _, filter_keys, values, nils, full, _, op
                     where)
 
   local res, err = self:query(query, schema)
-  if not res then return nil, err
+  if not res then
+    return nil, err
   elseif res.affected_rows == 1 then
-    res, err = deserialize_timestamps(self, res[1], schema)
-    if not res then return nil, err
+    res, err = deserialize_timestamps(self, res, schema)
+    if not res then
+      return nil, err
     elseif options.ttl then
       local ok, err = ttl(self, res, table_name, schema, options.ttl)
-      if not ok then return nil, err end
+      if not ok then
+        return nil, err
+      end
     end
     return res
   end
