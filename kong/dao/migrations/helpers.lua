@@ -84,6 +84,8 @@ function _M.plugin_config_iterator(dao, plugin_name)
 
       assert(run_rows(rows))
 
+    end)
+
   elseif dao.db_type == "mysql" then
     coro = coroutine.create(function()
       local rows, err = dao.db:query([[
@@ -94,7 +96,8 @@ function _M.plugin_config_iterator(dao, plugin_name)
       end
 
       assert(run_rows(rows))
-
+    end)
+    
   else
     coro = coroutine.create(function()
       return nil, nil, "unknown database type: " .. tostring(dao.db_type)
