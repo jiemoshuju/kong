@@ -135,11 +135,19 @@ local function get_active_targets(dao_factory, upstream_id)
   return active, active_n
 end
 
+local function createdAtFieldTransfer( row )
+  if type(row) == "table" then
+    if row and row.created_at then
+      row.created_at = tonumber(row.created_at)
+    end
+  end
+  return row
+end
 
 return {
   ["/upstreams/"] = {
     GET = function(self, dao_factory)
-      crud.paginated_set(self, dao_factory.upstreams)
+      crud.paginated_set(self, dao_factory.upstreams,createdAtFieldTransfer)
     end,
 
     PUT = function(self, dao_factory)

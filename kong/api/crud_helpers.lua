@@ -185,7 +185,7 @@ function _M.paginated_set(self, dao_collection, post_process)
       data[i] = post_process(row)
     end
   end
-
+  
   return responses.send_HTTP_OK {
     data     = data,
     total    = total_count,
