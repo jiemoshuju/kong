@@ -1,6 +1,7 @@
 local pl_tablex = require "pl.tablex"
 local singletons = require "kong.singletons"
 local utils = require "kong.tools.utils"
+local cjson = require "cjson"
 
 -- due to startup/require order, cannot use the ones from 'singletons' here
 local dns_client = require "resty.dns.client"

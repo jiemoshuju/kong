@@ -331,6 +331,7 @@ function _M:query(query, schema)
   if queryres==nil then
     queryres={}
   end
+
   return queryres
 end
 
@@ -344,7 +345,6 @@ local function deserialize_timestamps(self, row, schema)
           local query = fmt("SELECT   UNIX_TIMESTAMP('%s')*1000 as `%s`;", result[k], k)
           local res, err = self:query(query)
           if not res then
-            ngx.log(ngx.ERR, "sql:" .. query .. " err:" .. tostring(err))
             return nil, err
           elseif #res > 0 then
             result[k] = res[1][k]
@@ -389,6 +389,7 @@ function _M:insert(table_name, schema, model, _, options)
                     table_name,
                     concat(cols, ", "),
                     concat(args, ", "))
+
   local res, err = self:query(query, schema)
   if not res then 
     return nil, err
@@ -418,7 +419,8 @@ function _M:find(table_name, schema, primary_keys)
   local query = select_query(self, get_select_fields(schema), schema, table_name, where)
   local rows, err = self:query(query, schema)
   if not rows then       return nil, err
-  elseif #rows <= 1 then return rows[1]
+  elseif #rows <= 1 then
+    return rows[1]
   else                   return nil, "bad rows result" end
 end
 
@@ -475,7 +477,6 @@ end
 
 function _M:update(table_name, schema, _, filter_keys, values, nils, full, _, options)
   options = options or {}
-
   local args = {}
   local values, err = serialize_timestamps(self, values, schema)
   if not values then return nil, err end
@@ -497,12 +498,17 @@ function _M:update(table_name, schema, _, filter_keys, values, nils, full, _, op
                     table_name,
                     concat(args, ", "),
                     where)
-
   local res, err = self:query(query, schema)
   if not res then
     return nil, err
   elseif res.affected_rows == 1 then
-    res, err = deserialize_timestamps(self, res, schema)
+    local afterSql = fmt ("SELECT * FROM %s WHERE %s",table_name, where)
+    local qryres, qryerr = self:query(afterSql, schema)
+    if not qryres then
+      return nil, qryerr
+    end
+
+    res, err = deserialize_timestamps(self, qryres[1], schema)
     if not res then
       return nil, err
     elseif options.ttl then

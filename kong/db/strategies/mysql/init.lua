@@ -1,13 +1,13 @@
-local arrays     = require "pgmoon.arrays"
-local json       = require "pgmoon.json"
+-- local arrays     = require "pgmoon.arrays"
+-- local json       = require "pgmoon.json"
 local cjson      = require "cjson"
 local cjson_safe = require "cjson.safe"
 
 
 local encode_base64 = ngx.encode_base64
 local decode_base64 = ngx.decode_base64
-local encode_array  = arrays.encode_array
-local encode_json   = json.encode_json
+local encode_array  = cjson.encode
+local encode_json   = cjson.encode
 local setmetatable  = setmetatable
 local concat        = table.concat
 local ipairs        = ipairs
@@ -237,77 +237,88 @@ end
 --   error("don't know how to escape value: " .. tostring(val) .. " type:" .. t_val)
 -- end
 
-local function escape_identifier(connector, identifier, field)
-  -- if field then
-  --   if field.timestamp then
-  --     return concat { "UNIX_TIMESTAMP(", identifier, ") AS ", identifier }
-  --   end
-  -- end
+-- local function escape_identifier(connector, identifier, field)
+--   -- if field then
+--   --   if field.timestamp then
+--   --     return concat { "UNIX_TIMESTAMP(", identifier, ") AS ", identifier }
+--   --   end
+--   -- end
 
-  -- return identifier
-  return '`' .. (tostring(identifier):gsub('"', '""')) .. '`'
+--   -- return identifier
+--   return '`' .. (tostring(identifier):gsub('"', '""')) .. '`'
+-- end
+
+
+-- local function escape_literal(connector, literal, field)
+--   if literal == nil or literal == null or literal == ngx.null then
+--     return "''"
+--   end
+
+--   if field then
+--     if field.timestamp then
+--       return concat { "FROM_UNIXTIME(", connector:escape_literal(literal), ")"}
+--     end
+
+--     -- TODO: what about UUID, should it be in some defined format?
+
+--     if field.type == "array" or field.type == "set" then
+
+--       if not literal[1] then
+--         return connector:escape_literal("{}")
+--       end
+
+--       local elements = field.elements
+
+--       if elements.timestamp then
+--         local timestamps = {}
+--         for i, v in ipairs(literal) do
+--           timestamps[i] = concat { "FROM_UNIXTIME(", connector:escape_literal(v), ")"}
+--         end
+--         return encode_array(timestamps)
+--       end
+
+--       return encode_array(literal)
+
+--     elseif field.type == "map" or field.type == "record" then
+--       return encode_json(literal)
+--     end
+--   end
+
+--   return connector:escape_literal(literal)
+-- end
+
+local function escape_identifier(connector,ident, field)
+  return '`' .. (tostring(ident):gsub('"', '""')) .. '`'
 end
 
 
-local function escape_literal(connector, literal, field)
-  if literal == nil or literal == null or literal == ngx.null then
+local function escape_literal(connector, val, field)
+  local t_val = type(val)
+  if t_val == "nil" then
+    return tostring(val)
+  end
+  if literal == null or literal == ngx.null then
     return "''"
   end
-
   if field then
     if field.timestamp then
-      return concat { "FROM_UNIXTIME(", connector:escape_literal(literal), ")"}
+      return concat { "FROM_UNIXTIME(", connector:escape_literal(val), ")"}
     end
-
-    -- TODO: what about UUID, should it be in some defined format?
-
-    if field.type == "array" or field.type == "set" then
-
-      if not literal[1] then
-        return connector:escape_literal("{}")
+    if t_val == "number" then
+      return tostring(val)
+    elseif t_val == "string" then
+      return "'" .. tostring((val:gsub("'", "''"))) .. "'"
+    elseif t_val == "boolean" then
+      return val and "TRUE" or "FALSE"
+    elseif t_val == "table" then
+      if field and (field.type == "table" or field.type == "array" or field.type == "set") then
+        return connector:escape_literal(cjson.encode(val))
       end
-
-      local elements = field.elements
-
-      if elements.timestamp then
-        local timestamps = {}
-        for i, v in ipairs(literal) do
-          timestamps[i] = concat { "FROM_UNIXTIME(", connector:escape_literal(v), ")"}
-        end
-        return encode_array(timestamps)
-      end
-
-      local et = elements.type
-
-      if et == "array" or et == "set" then
-        local el = elements
-        repeat
-          el = el.elements
-          et = el.type
-        until et ~= "array" and et ~= "set"
-
-        if et == "map" or et == "record" then
-          return error("mysql strategy to escape multidimensional arrays of maps or records is not implemented")
-        end
-
-      elseif et == "map" or et == "record" then
-        local jsons = {}
-        for i, v in ipairs(literal) do
-          jsons[i] = cjson.encode(v)
-        end
-        return encode_array(jsons)
-      end
-
-      return encode_array(literal)
-
-    elseif field.type == "map" or field.type == "record" then
-      return encode_json(literal)
     end
   end
-
-  return connector:escape_literal(literal)
+  return connector:escape_literal(val)
+  -- error("don't know how to escape value: " .. tostring(t_val))
 end
-
 
 local function field_type_to_postgres_type(field)
   if field.timestamp then
@@ -528,8 +539,8 @@ local function execute(strategy, statement_name, attributes, is_update)
   end
 
   local sql = statement.make(argv)
-
-  return connector:query(sql)
+  local result,err = connector:query(sql)
+  return result,err
 end
 
 
@@ -713,9 +724,12 @@ end
 function _mt:update(primary_key, entity)
   local res, err = execute(self, "update", self.collapse(primary_key, entity), true)
   if res then
-    local row = res[1]
-    if row then
-      return self.expand(row), nil
+    local resRet, errRet = execute(self, "select", self.collapse(primary_key))
+    if resRet then
+      local row = resRet[1]
+      if row then
+        return self.expand(row), nil
+      end
     end
     return nil, self.errors:not_found(primary_key)
   end
@@ -728,13 +742,7 @@ function _mt:update_by_field(field_name, unique_value, entity)
   local statement_name = "update_by_" .. field_name
   local res, err = execute(self, statement_name, self.collapse({ [UNIQUE] = unique_value }, entity), true)
   if res then
-    local row = res[1]
-    if row then
-      return self.expand(row), nil
-    end
-    return nil, self.errors:not_found_by_field {
-      [field_name] = unique_value,
-    }
+    return _mt:select_by_field(field_name, unique_value)
   end
 
   return toerror(self, err, { [field_name] = unique_value }, entity)
@@ -746,9 +754,12 @@ function _mt:upsert(primary_key, entity)
 
   local res, err = execute(self, "upsert", collapsed_entity)
   if res then
-    local row = res[1]
-    if row then
-      return self.expand(row), nil
+    local resRet, errRet = execute(self, "select", self.collapse(primary_key))
+    if resRet then
+      local row = resRet[1]
+      if row then
+        return self.expand(row), nil
+      end
     end
     return nil, self.errors:not_found(primary_key)
   end
@@ -765,13 +776,7 @@ function _mt:upsert_by_field(field_name, unique_value, entity)
   local statement_name = "upsert_by_" .. field_name
   local res, err = execute(self, statement_name, collapsed_entity)
   if res then
-    local row = res[1]
-    if row then
-      return self.expand(row), nil
-    end
-    return nil, self.errors:not_found_by_field {
-      [field_name] = unique_value,
-    }
+    return _mt:select_by_field(field_name, unique_value)
   end
 
   return toerror(self, err, { [field_name] = unique_value }, entity)

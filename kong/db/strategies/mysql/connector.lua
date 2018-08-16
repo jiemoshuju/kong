@@ -11,6 +11,8 @@ local ngx          = ngx
 local get_phase    = ngx.get_phase
 local null         = ngx.null
 local log          = ngx.log
+local cjson        = require "cjson"
+local cjson_safe = require "cjson.safe"
 
 
 local WARN                          = ngx.WARN
@@ -140,6 +142,25 @@ function _mt:query(sql)
   end
 
   local res, err = connection:query(sql)
+  if res and #res > 0 then
+    for i=1,#res do
+      if type(res[i]) == "table" then
+        for k,v in pairs(res[i]) do
+          if k == 'created_at' or k == 'updated_at' then
+            local resTmpe,err = connection:query('SELECT UNIX_TIMESTAMP(\"' .. v .. '\") AS tmp;')
+            if resTmpe and resTmpe[1] then
+              res[i][k] = tonumber(resTmpe[1]['tmp'])
+            end
+          elseif type(v) == "string" then
+            local m = cjson_safe.decode(v)
+            if type(m) == "table" then
+              res[i][k] = m
+            end
+          end
+        end
+      end
+    end
+  end
 
   setkeepalive(connection)
 

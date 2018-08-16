@@ -678,6 +678,7 @@ validate_fields = function(self, input)
   local errors = {}
 
   for k, v in pairs(input) do
+
     local field = self.fields[k]
     if field then
       field = (field.type == "self") and input or field

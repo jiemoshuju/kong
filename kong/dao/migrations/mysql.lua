@@ -274,14 +274,14 @@ return {
         created_at       timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         updated_at       timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         name             varchar(512)                       UNIQUE,
-        retries          bigint(20) DEFAULT NULL,
+        retries          smallint(6) DEFAULT NULL,
         protocol         varchar(512) DEFAULT NULL,
         host             varchar(512) DEFAULT NULL,
-        port             bigint(20) DEFAULT NULL,
+        port             int(11) DEFAULT NULL,
         path             varchar(512) DEFAULT NULL,
-        connect_timeout  bigint(20) DEFAULT NULL,
-        write_timeout    bigint(20) DEFAULT NULL,
-        read_timeout     bigint(20) DEFAULT NULL
+        connect_timeout  int(11) DEFAULT NULL,
+        write_timeout    int(20) DEFAULT NULL,
+        read_timeout     int(11) DEFAULT NULL
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
 
       CREATE TABLE IF NOT EXISTS routes (
