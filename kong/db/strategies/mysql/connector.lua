@@ -151,6 +151,13 @@ function _mt:query(sql)
             if resTmpe and resTmpe[1] then
               res[i][k] = tonumber(resTmpe[1]['tmp'])
             end
+          elseif k == 'regex_priority' then
+            res[i][k] = tonumber(v)
+          elseif k == 'strip_path' or k == 'preserve_host' then
+            res[i][k] = true
+            if v == 0 then
+              res[i][k] = false
+            end
           elseif type(v) == "string" then
             local m = cjson_safe.decode(v)
             if type(m) == "table" then

@@ -332,5 +332,8 @@ build = {
 
     ["kong.plugins.request-termination.handler"] = "kong/plugins/request-termination/handler.lua",
     ["kong.plugins.request-termination.schema"] = "kong/plugins/request-termination/schema.lua",
+    ["kong.plugins.helloworld.handler"] = "kong/plugins/helloworld/handler.lua",
+    ["kong.plugins.helloworld.access"] = "kong/plugins/helloworld/access.lua",
+    ["kong.plugins.helloworld.schema"] = "kong/plugins/helloworld/schema.lua",
   }
 }
