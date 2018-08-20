@@ -280,7 +280,7 @@ return {
         port             int(11) DEFAULT NULL,
         path             varchar(512) DEFAULT NULL,
         connect_timeout  int(11) DEFAULT NULL,
-        write_timeout    int(20) DEFAULT NULL,
+        write_timeout    int(11) DEFAULT NULL,
         read_timeout     int(11) DEFAULT NULL
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
 
@@ -297,6 +297,24 @@ return {
         preserve_host  boolean,
         service_id     varchar(50),
         CONSTRAINT     routes_fkey_service FOREIGN KEY (service_id) REFERENCES services(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
+    ]],
+    down = nil
+  },
+  {
+    name = "2018-08-20-100500_website",
+    up = [[
+      CREATE TABLE IF NOT EXISTS website (
+        id               varchar(50)                       PRIMARY KEY,
+        created_at       timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        updated_at       timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        server_name      varchar(512)                       UNIQUE,
+        listen           int(11) DEFAULT NULL,
+        resolver         varchar(512) DEFAULT NULL,
+        root             varchar(512) DEFAULT NULL,
+        ssl_certificate  text,
+        ssl_certificate_key text,
+        locations        text
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
     ]],
     down = nil

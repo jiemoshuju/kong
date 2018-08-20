@@ -13,6 +13,7 @@ local CORE_MODELS = {
   "plugins",
   "upstreams",
   "targets",
+  "website"
 }
 
 -- returns db errors as strings, including the initial `nil`

@@ -14,6 +14,7 @@ local constants = require "kong.constants"
 local ffi = require "ffi"
 local fmt = string.format
 local nginx_signals = require "kong.cmd.utils.nginx_signals"
+local cjson_safe = require "cjson.safe"
 
 local function gen_default_ssl_cert(kong_config, admin)
   -- create SSL folder
@@ -162,7 +163,94 @@ local function compile_nginx_conf(kong_config, template)
   return compile_conf(kong_config, template)
 end
 
-local function prepare_prefix(kong_config, nginx_custom_template_path)
+local function parse_website_conf(confInfo)
+    local webConfStr = ''
+    if confInfo['listen'] == 433 then
+        webConfStr = [[
+server {
+    listen %s;
+    server_name %s;
+    resolver %s valid=3600s;
+
+    ssl_certificate cert/%s.pem;
+    ssl_certificate_key cert/%s.key;
+
+    ssl_session_cache    shared:SSL:1m;
+    ssl_session_timeout  5m;
+
+    ssl_protocols        TLSv1 TLSv1.1 TLSv1.2;
+    ssl_ciphers          HIGH:!aNULL:!MD5:!kEDH;
+    ssl_prefer_server_ciphers   on;
+    lua_check_client_abort      on;
+
+    root %s;
+
+    gzip on;
+    gzip_min_length 1k;
+    gzip_buffers 4 16k;
+    gzip_comp_level 5;
+    gzip_types text/plain application/x-javascript application/javascript text/css application/xml text/javascript application/x-httpd-php;
+    gzip_vary on;
+    gzip_disable "MSIE [1-6]\.";
+
+    %s
+
+    location ~* .(jpg|jpeg|png|gif|ico|css|js)$ {
+        expires 1d;
+    }
+
+    location / {
+        try_files $uri $uri/ @router;
+        index index.html;
+    }
+
+    location @router {
+        rewrite ^.*$ /index.html last;
+    }
+}
+]]
+        local mt = pl_stringx.split(confInfo['server_name'],' ')
+        local serverDomain = pl_stringx.split(mt[1],'.')
+        local domain = ''
+        if #serverDomain >= 1 then
+            domain = serverDomain[#serverDomain-2] .. serverDomain[#serverDomain-1]
+        else
+            domain = serverDomain[1]
+        end
+
+        return fmt(webConfStr,
+            confInfo['listen'],confInfo['server_name'],
+            confInfo['resolver'],domain,domain,confInfo['root'],confInfo['locations'])
+    else
+        webConfStr = [[
+server {
+    listen       %s;
+    server_name  %s;
+    %s
+
+    gzip on;
+    gzip_min_length 1k;
+    gzip_buffers 4 16k;
+    gzip_comp_level 5;
+    gzip_types text/plain application/x-javascript application/javascript text/css application/xml text/javascript application/x-httpd-php;
+    gzip_vary on;
+    gzip_disable "MSIE [1-6]\.";
+
+    %s
+}
+]]
+        resolverString = ''
+        if confInfo['resolver'] and confInfo['resolver'] ~= '' then
+          resolverString = "resolver    " .. confInfo['resolver'] .. " valid=3600s;"
+        end
+        return fmt(webConfStr,
+            confInfo['listen'],confInfo['server_name'],
+            resolverString,confInfo['locations']
+            )
+    end
+end
+
+local function prepare_prefix(kong_config, nginx_custom_template_path, dao)
   log.verbose("preparing nginx prefix directory at %s", kong_config.prefix)
 
   if not pl_path.exists(kong_config.prefix) then
@@ -254,7 +342,17 @@ local function prepare_prefix(kong_config, nginx_custom_template_path)
   if not nginx_kong_conf then
     return nil, err
   end
-  pl_file.write(kong_config.nginx_kong_conf, nginx_kong_conf)
+  ngx.log(ngx.ERR, nginx_kong_conf)
+  local serverBlock = ''
+  local result,err = dao.website:find_all({})
+  if err then
+    ngx.log(ngx.ERR, 'website load error:' .. err)
+  end
+  for key,value in ipairs(result) do
+      serverBlock = serverBlock .. parse_website_conf(value) .. "\n"
+  end
+
+  pl_file.write(kong_config.nginx_kong_conf, nginx_kong_conf .. serverBlock)
 
   -- testing written NGINX conf
   local ok, err = nginx_signals.check_conf(kong_config)

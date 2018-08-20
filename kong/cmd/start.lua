@@ -25,7 +25,7 @@ local function execute(args)
   local err
 
   xpcall(function()
-    assert(prefix_handler.prepare_prefix(conf, args.nginx_conf))
+    assert(prefix_handler.prepare_prefix(conf, args.nginx_conf,dao))
 
     if args.run_migrations then
       assert(dao:run_migrations())

@@ -230,5 +230,6 @@ server {
         return 200 'User-agent: *\nDisallow: /';
     }
 }
+
 > end
 ]]
