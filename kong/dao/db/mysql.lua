@@ -219,7 +219,10 @@ end
 
 local function select_query(self, select_clause, schema, table, where, offset, limit)
   local query
-  local join_ttl = table ~= 'website' and schema.primary_key and #schema.primary_key == 1
+  if where == '' or where == nil then
+    return fmt("SELECT %s FROM %s", select_clause, table)
+  end
+  local join_ttl = schema.primary_key and #schema.primary_key == 1
   if join_ttl then
     local primary_key_type, err = retrieve_primary_key_type(self, schema, table)
     if not primary_key_type then return nil, err end
@@ -235,7 +238,7 @@ local function select_query(self, select_clause, schema, table, where, offset, l
     query = fmt("SELECT %s FROM %s", select_clause, table)
   end
 
-  if where and table ~= 'website' then
+  if where then
     query = query .. (join_ttl and " AND " or " WHERE ") .. where
   end
   if limit then
@@ -429,7 +432,7 @@ function _M:find_all(table_name, tbl, schema)
       where = get_where(tbl)
     end
     local query = select_query(self, get_select_fields(schema), schema, table_name, where)
-    ngx.log(ngx.ERR, query)
+
     if query ~=nil then
       return   self:query(query,schema) 
     else
