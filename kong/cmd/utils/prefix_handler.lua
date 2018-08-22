@@ -317,7 +317,9 @@ local function prepare_prefix(kong_config, nginx_custom_template_path, dao)
   if not nginx_websites_conf then
     return nil, err
   end
-  pl_file.write(kong_config.nginx_websites_conf, nginx_websites_conf)
+  if dao then
+    pl_file.write(kong_config.nginx_websites_conf, nginx_websites_conf)
+  end
 
   -- testing written NGINX conf
   local ok, err = nginx_signals.check_conf(kong_config)
