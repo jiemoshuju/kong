@@ -55,8 +55,8 @@ local sslBlock = [[
     ssl_certificate      ssl/%s.crt;
     ssl_certificate_key  ssl/%s.key;
 
-    ssl_session_cache    shared:SSL:1m;
-    ssl_session_timeout  5m;
+    ssl_session_cache    shared:SSL:10m;
+    ssl_session_timeout  10m;
 
     ssl_protocols        TLSv1 TLSv1.1 TLSv1.2;
     ssl_ciphers          HIGH:!aNULL:!MD5:!kEDH;
@@ -113,8 +113,10 @@ local function getWebsiteConf(webConf,sslprefix)
 
   local domain = get_domain(webConf['server_name'])
   if webConf['listen'] == 443 then
-    pl_file.write(pl_path.join(sslprefix, domain .. ".crt", webConf['ssl_certificate']))
-    pl_file.write(pl_path.join(sslprefix, domain .. ".key", webConf['ssl_certificate_key']))
+    if not pl_path.exists(pl_path.join(sslprefix, 'ssl', domain .. ".crt"))
+      or not pl_path.exists(pl_path.join(sslprefix, 'ssl', domain .. ".key")) then
+      return nil, domain .. ' miss ssl_certificate keypairs'
+    end
     data.ssl = fmt(sslBlock, domain, domain)
   end
 

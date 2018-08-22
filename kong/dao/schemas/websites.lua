@@ -1,5 +1,5 @@
 return {
-  table = "website",
+  table = "websites",
   primary_key = {"id"},
   fields = {
     id = {
@@ -32,15 +32,6 @@ return {
     },
     root = {
       type = "string",
-    },
-    ssl_certificate = {
-      type = "string"
-    },
-    ssl_certificate_key = {
-      type = "string"
-    },
-    locations = {
-      type = "string"
     }
   },
   self_check = function(schema, config, dao, is_updating)

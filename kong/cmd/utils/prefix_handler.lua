@@ -166,12 +166,12 @@ end
 
 local function compile_websites_conf(dao,kong_config_prefix)
     local serverBlock = ''
-    if dao and dao.website then
-      local result,err = dao.website:find_all({})
-      ngx.log(ngx.ERR, cjson_safe.encode(result))
+    if dao and dao.websites then
+      local result,err = dao.websites:find_all({})
       if err then
-        return nil, 'website load error:' .. err
+        return nil, 'websites load error:' .. err
       else
+        -- load all routes for websites
         local mapRoutes = {}
         local routes,errMsg = dao.routes:find_all({})
         if errMsg then
@@ -184,9 +184,27 @@ local function compile_websites_conf(dao,kong_config_prefix)
             end
           end
         end
+        -- load all ssl certificates for websites
+        local snisMap = {}
         for key,confInfo in ipairs(result) do
           if confInfo.listen == 443 then
             local domain = nginx_website_template.get_domain(confInfo.server_name)
+            if snisMap.domain ~= 1 then
+              local snisInfo,errSnis = dao.snis:find_all({ name = domain })
+              if errSnis then
+                return nil, 'snis load error:' .. errSnis
+              end
+              if snisInfo and #snisInfo > 0 then
+                local certificateInfo,errCert = dao.certificates:find_all({ id = snisInfo[1]['certificate_id'] })
+                if certificateInfo and #certificateInfo > 0 then
+                  snisMap[domain] = 1
+                  pl_file.write(pl_path.join(kong_config_prefix, 'ssl', domain .. ".crt"),
+                   certificateInfo[1]['cert'])
+                  pl_file.write(pl_path.join(kong_config_prefix, 'ssl', domain .. ".key"),
+                   certificateInfo[1]['key'])
+                end
+              end
+            end
           end
           confInfo['locations'] = mapRoutes[confInfo.server_name] or {}
           local webConfStr,errW = nginx_website_template.getWebsiteConf(confInfo,kong_config_prefix)

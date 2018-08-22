@@ -169,8 +169,8 @@ return {
 
       CREATE TABLE  IF NOT EXISTS certificates(
         id varchar(50) PRIMARY KEY,
-        cert varchar(500) ,
-        `key` varchar(500) ,
+        cert text ,
+        `key` text ,
         created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
 
@@ -302,19 +302,16 @@ return {
     down = nil
   },
   {
-    name = "2018-08-20-100500_website",
+    name = "2018-08-20-100500_websites",
     up = [[
-      CREATE TABLE IF NOT EXISTS website (
+      CREATE TABLE IF NOT EXISTS websites (
         id               varchar(50)                       PRIMARY KEY,
         created_at       timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         updated_at       timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         server_name      varchar(512)                       UNIQUE,
         listen           int(11) DEFAULT NULL,
         resolver         varchar(512) DEFAULT NULL,
-        root             varchar(512) DEFAULT NULL,
-        ssl_certificate  text,
-        ssl_certificate_key text,
-        locations        text
+        root             varchar(512) DEFAULT NULL
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
     ]],
     down = nil
