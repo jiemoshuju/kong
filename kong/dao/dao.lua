@@ -17,7 +17,6 @@ local utils = require "kong.tools.utils"
 local Errors = require "kong.dao.errors"
 local schemas_validation = require "kong.dao.schemas_validation"
 
-
 local fmt    = string.format
 local new_tab
 do

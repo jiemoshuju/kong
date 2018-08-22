@@ -674,9 +674,12 @@ end
 function _mt:insert(entity)
   local res, err = execute(self, "insert", self.collapse(entity))
   if res then
-    local row = res[1]
-    if row then
-      return self.expand(row), nil
+    local resRet, errRet = execute(self, "select", self.collapse(entity))
+    if resRet then
+      local row = resRet[1]
+      if row then
+        return self.expand(row), nil
+      end
     end
 
     return nil, nil
