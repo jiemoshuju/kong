@@ -322,10 +322,16 @@
 # All Kong nodes belonging to the same cluster must connect themselves to the
 # same database.
 
-#database = postgres             # Determines which of PostgreSQL or Cassandra
+#database = mysql             # Determines which of PostgreSQL or Cassandra
                                  # this node will use as its datastore.
                                  # Accepted values are `postgres` and
                                  # `cassandra` and `mysql`.
+
+#mysql_host = 10.3.19.109        # The MySQL host to connect to.
+#mysql_port = 3306               # The port to connect to.
+#mysql_database = kong           # The database name to connect to.
+#mysql_user = kong               # The username to authenticate if required.
+#mysql_password = kong           # The password to authenticate if required.
 
 #pg_host = 127.0.0.1             # The PostgreSQL host to connect to.
 #pg_port = 5432                  # The port to connect to.
