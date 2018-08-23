@@ -16,6 +16,7 @@ local Object = require "kong.vendor.classic"
 local utils = require "kong.tools.utils"
 local Errors = require "kong.dao.errors"
 local schemas_validation = require "kong.dao.schemas_validation"
+local cjson = require "cjson"
 
 local fmt    = string.format
 local new_tab

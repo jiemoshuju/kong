@@ -100,7 +100,7 @@ local function getWebsiteConf(webConf,sslprefix)
 
   local data = {
     listen = webConf.listen or 80,
-    server_name = webConf.server_name,
+    server_name = webConf.name,
     resolver = '',
     ssl = '',
     root = '',
@@ -111,7 +111,7 @@ local function getWebsiteConf(webConf,sslprefix)
     data.resolver = "resolver    " .. webConf['resolver'] .. " valid=3600s;"
   end
 
-  local domain = get_domain(webConf['server_name'])
+  local domain = get_domain(webConf['name'])
   if webConf['listen'] == 443 then
     if not pl_path.exists(pl_path.join(sslprefix, 'ssl', domain .. ".crt"))
       or not pl_path.exists(pl_path.join(sslprefix, 'ssl', domain .. ".key")) then
@@ -122,7 +122,7 @@ local function getWebsiteConf(webConf,sslprefix)
 
   if webConf['locations'] and #webConf['locations'] > 0 then
     for _,locpath in ipairs(webConf['locations']) do
-      data.locations = data.locations .. fmt(locationBlock,locpath,webConf['server_name'])
+      data.locations = data.locations .. fmt(locationBlock,locpath,webConf['name'])
     end
   end
 

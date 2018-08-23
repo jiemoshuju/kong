@@ -102,6 +102,7 @@ build = {
     ["kong.api.routes.upstreams"] = "kong/api/routes/upstreams.lua",
     ["kong.api.routes.certificates"] = "kong/api/routes/certificates.lua",
     ["kong.api.routes.snis"] = "kong/api/routes/snis.lua",
+    ["kong.api.routes.websites"] = "kong/api/routes/websites.lua",
 
     ["kong.tools.ip"] = "kong/tools/ip.lua",
     ["kong.tools.ciphers"] = "kong/tools/ciphers.lua",
@@ -123,6 +124,7 @@ build = {
     ["kong.dao.schemas.plugins"] = "kong/dao/schemas/plugins.lua",
     ["kong.dao.schemas.upstreams"] = "kong/dao/schemas/upstreams.lua",
     ["kong.dao.schemas.targets"] = "kong/dao/schemas/targets.lua",
+    ["kong.dao.schemas.websites"] = "kong/dao/schemas/websites.lua",
     ["kong.dao.db"] = "kong/dao/db/init.lua",
     ["kong.dao.db.cassandra"] = "kong/dao/db/cassandra.lua",
     ["kong.dao.db.postgres"] = "kong/dao/db/postgres.lua",

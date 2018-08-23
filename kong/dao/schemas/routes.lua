@@ -15,7 +15,7 @@ return {
     preserve_host  = { type = "boolean", default = false },
     service_id        = { type = "id", reference = "services", required = true },
   },
-
+  left_join = false,
   self_check = function(schema, api_t, dao, is_update)
     return true
   end

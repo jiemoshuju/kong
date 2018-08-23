@@ -33,7 +33,6 @@ function _M.find_by_id_or_field(dao, filter, value, alternate_field)
   filter = filter or {}
   local is_uuid = utils.is_valid_uuid(value)
   filter[is_uuid and "id" or alternate_field] = value
-
   local rows, err = dao:find_all(filter)
   if err then
     return nil, err
@@ -123,6 +122,23 @@ function _M.find_upstream_by_name_or_id(self, dao_factory, helpers)
   -- We know name and id are unique, so if we have a row, it must be the only one
   self.upstream = rows[1]
   if not self.upstream then
+    return helpers.responses.send_HTTP_NOT_FOUND()
+  end
+end
+
+
+function _M.find_website_by_name_or_id(self, dao_factory, helpers)
+  local rows, err = _M.find_by_id_or_field(dao_factory.websites, {},
+                                           self.params.website_name_or_id, "name")
+
+  if err then
+    return helpers.yield_error(err)
+  end
+  self.params.website_name_or_id = nil
+
+  -- We know name and id are unique, so if we have a row, it must be the only one
+  self.website = rows[1]
+  if not self.website then
     return helpers.responses.send_HTTP_NOT_FOUND()
   end
 end

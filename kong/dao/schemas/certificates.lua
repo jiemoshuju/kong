@@ -22,6 +22,7 @@ return {
       required = true
     },
   },
+  left_join = false,
   self_check = function(schema, config, dao, is_updating)
     return true
   end,

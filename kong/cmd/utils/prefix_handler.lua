@@ -188,7 +188,7 @@ local function compile_websites_conf(dao,kong_config_prefix)
         local snisMap = {}
         for key,confInfo in ipairs(result) do
           if confInfo.listen == 443 then
-            local domain = nginx_website_template.get_domain(confInfo.server_name)
+            local domain = nginx_website_template.get_domain(confInfo.name)
             if snisMap.domain ~= 1 then
               local snisInfo,errSnis = dao.snis:find_all({ name = domain })
               if errSnis then
@@ -206,7 +206,7 @@ local function compile_websites_conf(dao,kong_config_prefix)
               end
             end
           end
-          confInfo['locations'] = mapRoutes[confInfo.server_name] or {}
+          confInfo['locations'] = mapRoutes[confInfo.name] or {}
           local webConfStr,errW = nginx_website_template.getWebsiteConf(confInfo,kong_config_prefix)
           if errW then
             return nil, errW

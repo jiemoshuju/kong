@@ -41,6 +41,7 @@ return {
       default = DEFAULT_WEIGHT,
     },
   },
+  left_join = false,
   self_check = function(schema, config, dao, is_updating)
 
     -- check weight

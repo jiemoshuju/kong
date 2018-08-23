@@ -308,10 +308,10 @@ return {
         id               varchar(50)                       PRIMARY KEY,
         created_at       timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         updated_at       timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        server_name      varchar(512)                       UNIQUE,
-        listen           int(11) DEFAULT NULL,
-        resolver         varchar(512) DEFAULT NULL,
-        root             varchar(512) DEFAULT NULL
+        name             varchar(512)                       UNIQUE,
+        listen           int(11) DEFAULT 80,
+        resolver         varchar(512) DEFAULT '',
+        root             varchar(512) DEFAULT ''
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
     ]],
     down = nil
