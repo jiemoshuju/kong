@@ -206,7 +206,7 @@ local function compile_websites_conf(dao,kong_config_prefix)
               end
             end
           end
-          confInfo['locations'] = mapRoutes[confInfo.name] or {}
+          confInfo['routes'] = mapRoutes[confInfo.name] or {}
           local webConfStr,errW = nginx_website_template.getWebsiteConf(confInfo,kong_config_prefix)
           if errW then
             return nil, errW

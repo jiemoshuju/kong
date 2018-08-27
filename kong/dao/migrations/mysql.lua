@@ -311,7 +311,8 @@ return {
         name             varchar(512)                       UNIQUE,
         listen           int(11) DEFAULT 80,
         resolver         varchar(512) DEFAULT '',
-        root             varchar(512) DEFAULT ''
+        root             varchar(512) DEFAULT '',
+        locations        text
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
     ]],
     down = nil

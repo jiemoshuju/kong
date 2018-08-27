@@ -120,15 +120,19 @@ local function getWebsiteConf(webConf,sslprefix)
     data.ssl = fmt(sslBlock, domain, domain)
   end
 
-  if webConf['locations'] and #webConf['locations'] > 0 then
-    for _,locpath in ipairs(webConf['locations']) do
+  if webConf['routes'] and #webConf['routes'] > 0 then
+    for _,locpath in ipairs(webConf['routes']) do
       data.locations = data.locations .. fmt(locationBlock,locpath,webConf['name'])
     end
   end
 
-  if webConf['root'] and webConf['root'] ~= '' then
-    data.root = "root    " .. webConf['root'] .. ";"
-    data.locations = data.locations .. staticResourceBlock
+  if webConf['locations'] and type(webConf['locations']) == "string" then
+    data.locations = data.locations .. webConf['locations']
+  else
+    if webConf['root'] and webConf['root'] ~= '' then
+      data.root = "root    " .. webConf['root'] .. ";"
+      data.locations = data.locations .. staticResourceBlock
+    end
   end
 
   return fmt(website_template,

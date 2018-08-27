@@ -77,6 +77,10 @@ return {
     resolver = {
       type = "string",
       default = '',
+    },
+    locations = {
+      type = "string",
+      default = '',
     }
   },
   left_join = false,
