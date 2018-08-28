@@ -165,57 +165,63 @@ local function compile_nginx_conf(kong_config, template)
 end
 
 local function compile_websites_conf(dao,kong_config_prefix)
-    local serverBlock = ''
-    if dao and dao.websites then
-      local result,err = dao.websites:find_all({})
-      if err then
-        return nil, 'websites load error:' .. err
-      else
-        -- load all routes for websites
-        local mapRoutes = {}
-        local routes,errMsg = dao.routes:find_all({})
-        if errMsg then
-          return nil, 'routes load error:' .. errMsg
-        end
-        for _, routeInfo in ipairs(routes) do
-          if routeInfo.hosts and #routeInfo.hosts > 0 then
-            for _,host in ipairs(routeInfo.hosts) do
+  local serverBlock = ''
+  if dao and dao.websites then
+    local result,err = dao.websites:find_all({})
+    if err then
+      return nil, 'websites load error:' .. err
+    else
+      -- load all routes for websites
+      local mapRoutes = {}
+      local routes,errMsg = dao.routes:find_all({})
+      if errMsg then
+        return nil, 'routes load error:' .. errMsg
+      end
+      for _, routeInfo in ipairs(routes) do
+        if routeInfo.hosts and #routeInfo.hosts > 0 then
+          for _,host in ipairs(routeInfo.hosts) do
+            if mapRoutes[host] then
+              for _,tmpPath in ipairs(routeInfo['paths']) do
+                table.insert(mapRoutes[host],tmpPath)
+              end
+            else
               mapRoutes[host] = routeInfo['paths']
             end
           end
         end
-        -- load all ssl certificates for websites
-        local snisMap = {}
-        for key,confInfo in ipairs(result) do
-          if confInfo.listen == 443 then
-            local domain = nginx_website_template.get_domain(confInfo.name)
-            if snisMap.domain ~= 1 then
-              local snisInfo,errSnis = dao.snis:find_all({ name = domain })
-              if errSnis then
-                return nil, 'snis load error:' .. errSnis
-              end
-              if snisInfo and #snisInfo > 0 then
-                local certificateInfo,errCert = dao.certificates:find_all({ id = snisInfo[1]['certificate_id'] })
-                if certificateInfo and #certificateInfo > 0 then
-                  snisMap[domain] = 1
-                  pl_file.write(pl_path.join(kong_config_prefix, 'ssl', domain .. ".crt"),
-                   certificateInfo[1]['cert'])
-                  pl_file.write(pl_path.join(kong_config_prefix, 'ssl', domain .. ".key"),
-                   certificateInfo[1]['key'])
-                end
+      end
+      -- load all ssl certificates for websites
+      local snisMap = {}
+      for key,confInfo in ipairs(result) do
+        if confInfo.listen == 443 then
+          local domain = nginx_website_template.get_domain(confInfo.name)
+          if snisMap.domain ~= 1 then
+            local snisInfo,errSnis = dao.snis:find_all({ name = domain })
+            if errSnis then
+              return nil, 'snis load error:' .. errSnis
+            end
+            if snisInfo and #snisInfo > 0 then
+              local certificateInfo,errCert = dao.certificates:find_all({ id = snisInfo[1]['certificate_id'] })
+              if certificateInfo and #certificateInfo > 0 then
+                snisMap[domain] = 1
+                pl_file.write(pl_path.join(kong_config_prefix, 'ssl', domain .. ".crt"),
+                 certificateInfo[1]['cert'])
+                pl_file.write(pl_path.join(kong_config_prefix, 'ssl', domain .. ".key"),
+                 certificateInfo[1]['key'])
               end
             end
           end
-          confInfo['routes'] = mapRoutes[confInfo.name] or {}
-          local webConfStr,errW = nginx_website_template.getWebsiteConf(confInfo,kong_config_prefix)
-          if errW then
-            return nil, errW
-          end
-          serverBlock = serverBlock .. webConfStr .. "\n"
         end
+        confInfo['routes'] = mapRoutes[confInfo.name] or {}
+        local webConfStr,errW = nginx_website_template.getWebsiteConf(confInfo,kong_config_prefix)
+        if errW then
+          return nil, errW
+        end
+        serverBlock = serverBlock .. webConfStr .. "\n"
       end
     end
-    return serverBlock
+  end
+  return serverBlock
 end
 
 local function prepare_prefix(kong_config, nginx_custom_template_path, dao)
